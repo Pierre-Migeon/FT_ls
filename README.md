@@ -1,2 +1,2 @@
-# FT_ls
+# ft_ls
 As simple as listing files in a directory
