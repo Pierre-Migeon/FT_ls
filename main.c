@@ -88,6 +88,7 @@ void	malloc_structs(t_flags **flags, t_llist **list)
 		exit(1);
         if (!(*list = (t_llist *)malloc(sizeof(t_llist))))
 		exit(1);
+	*list = NULL;
 }
 
 int	does_it_exist(char *name)
@@ -108,36 +109,38 @@ int	does_it_exist(char *name)
 	return (1);
 }
 
-t_llist *new_node(void)
+void	push_end_node(t_llist **list, char *name)
 {
 	t_llist *next;
+	t_llist *current;
 
 	if(!(next = (t_llist *)malloc(sizeof(t_llist))))
 		exit(1);
 	next->next = NULL;
-	return (next);
+	next->name = ft_strdup(name);
+	current = *list;
+	while (current && current->next)
+		current = current->next;
+	if (current == NULL)
+		*list = next;
+	else
+		current->next = next;
 }
 
 t_llist	*from_command_line(char **argv, t_llist *list)
 {
 	int i;
-	t_llist *head;
 
 	i = 0;
-	head = list;
 	while (argv[i])
 	{
 		if(does_it_exist(argv[i]))
 			no_such_file(argv[i]);
 		else
-		{
-			list->name = ft_strdup(argv[i]);
-			list->next = new_node();
-			list = list->next;
-		}
+			push_end_node(&list, argv[i]);
 		++i;
 	}
-	return (head);
+	return (list);
 }
 
 t_llist	*make_list(char **argv, t_llist *list, t_flags *flags)
@@ -145,59 +148,85 @@ t_llist	*make_list(char **argv, t_llist *list, t_flags *flags)
 	int 		i;
 	DIR 		*dirp;
 	struct dirent 	*dp;
-	t_llist 	*head;
 
 	i = 0;
 	if (*argv)
 		return (from_command_line(argv, list));
-	head = list;
 	dirp = opendir(".");
         while ((dp = readdir(dirp)))
 	{
 		if ((ft_strncmp(dp->d_name, ".", 1)) || flags->flags & 2)
-		{
-			list->name = ft_strdup(dp->d_name);
-			list->next = new_node();
-			list = list->next;
-		}
+			push_end_node(&list, dp->d_name);
 	}
 	closedir(dirp);
-	return (head);
+	return (list);
 }
 
-void	swap(t_llist **last, t_llist **current)
+void	swap_list(t_llist *head)
 {
-	if (last)
+	char *tmp;
+
+	tmp = head->name;
+	head->name = head->next->name;
+	head->next->name = tmp;
+}
+
+void	print_list(t_llist *list)
+{
+	int i;
+	int j;
+	t_llist *head;
+
+	i = 0;
+	head = list;
+	while (i < 2)
 	{
-		(*last)->next = (*current)->next;
-		(*current)->next = (*current)->next->next;
+		j = 0;
+		while(list)
+		{
+			if (j % 2 == i)
+				printf("%s\t\t", list->name);
+			list = list->next;
+			++j;
+		}
+		++i;
+		list = head;
+		printf("\n");
 	}
 }
 
-void	sort_list(t_llist **list, t_flags *flags)
+void	ft_bubble_sort(t_llist **head)
 {
-	t_llist *head;
-	t_llist *last;
-	int	go_ahead;
+	t_llist *front;
+	int	go_flag;
 
-	head = *list;
-	last = NULL;
-	go_ahead = 1;
-	while(go_ahead)
+	go_flag = 1;
+	while (go_flag)
 	{
-		head = *list;
-		go_ahead = 0;
-		while (head->next)
+		go_flag = 0;
+		front = *head;
+		while (front->next)
 		{
-			if (ft_strcmp(list->name, list->next->name) > 0)
+			if (ft_strcmp(front->name, front->next->name) > 0)
 			{
-				swap(&last, &list);
-				go_ahead++;
+				swap_list(front);
+				++go_flag;
 			}
-			last = list;
-		:wq
-	list = list->next;
+			front = front->next;
 		}
+	}
+}
+
+void	free_list(t_llist *head)
+{
+	t_llist *current;
+
+	while (head)
+	{
+		free(head->name);
+		current = head;
+		head = head->next;
+		free(current);
 	}
 }
 
@@ -209,18 +238,9 @@ int	main(int argc, char **argv)
 
 	malloc_structs(&flags, &list);
 	i = get_flags(argc, argv, flags);
-	//get info + make linked list
 	list = make_list(argv + i, list, flags);
-	while(list->next != NULL)
-	{	
-		printf ("%s\n", list->name);
-		list = list->next;
-	}	
-	//sort linked list
-	sort_list(&list, flags);
-	//print linked list:
-	//print_list();
-	//free linked list
-	//free_list(list);
+	ft_bubble_sort(&list);
+	print_list(list);
+	free_list(list);
 	return (0);
 }
