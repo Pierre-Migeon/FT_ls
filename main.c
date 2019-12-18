@@ -115,16 +115,16 @@ t_llist	*from_command_line(char **argv, t_llist *list)
 	return (list);
 }
 
-t_llist	*make_list(char **argv, t_llist *list, t_flags *flags)
+t_llist	*make_list(char **argv, t_llist *list, t_flags *flags, char *path)
 {
 	int 		i;
 	DIR 		*dirp;
 	struct dirent 	*dp;
 
 	i = 0;
-	if (*argv)
+	if (argv && *argv)
 		return (from_command_line(argv, list));
-	dirp = opendir(".");
+	dirp = opendir(path);
         while ((dp = readdir(dirp)))
 	{
 		if ((ft_strncmp(dp->d_name, ".", 1)) || flags->flags & 2)
@@ -185,15 +185,57 @@ void	free_list(t_llist *head)
 	}
 }
 
-void	ft_ls(char **argv, t_flags *flags)
+int	is_directory(char *path) 
 {
-	t_llist *list;
+	struct stat statbuf;
 
-	list = NULL;
-	list = make_list(argv, list, flags);
+	if (stat(path, &statbuf) != 0)
+		return 0;
+	return S_ISDIR(statbuf.st_mode);
+}
+
+char	*new_path(char *orig_path, char *directory)
+{
+	int	len;
+	int	i;
+	char	*out_path;
+
+	i = 0;
+	len = 2;
+	len += ft_strlen(orig_path);
+	len += ft_strlen(directory);
+	if (!(out_path = (char *)malloc(sizeof(char) * len)))
+		exit(0);
+	while (*orig_path)
+		*(out_path + i++) = *(orig_path++);
+	//Hmmm... won't work on windows computers...
+	*(out_path + i++) = '/';
+	while (*directory)
+		*(out_path + i++) = *(directory++);
+	*(out_path + i) = '\0';
+	return (out_path);
+}
+
+void    go_sub_dir(t_llist *list, t_flags *flags, char *path)
+{
+        while (list)
+        {
+                if (is_directory(list->name))
+                        ft_ls(NULL, flags, new_path(path, list->name));
+                list = list->next;
+        }
+}
+
+void	ft_ls(char **argv, t_flags *flags, char *path)
+{
+	t_llist *list = NULL;
+
+	list = make_list(argv, list, flags, path);
         merge_sort(&list, flags);
         print_list(list, flags);
-        free_list(list);
+	if (flags->flags & 8)
+		go_sub_dir(list, flags, path);
+	free_list(list);
 }
 
 int	main(int argc, char **argv)
@@ -202,6 +244,6 @@ int	main(int argc, char **argv)
 	int 	i;
 
 	i = get_flags(argc, argv, &flags);
-	ft_ls(argv + i, flags);
+	ft_ls(argv + i, flags, ".");
 	return (0);
 }
