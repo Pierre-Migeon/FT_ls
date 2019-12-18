@@ -1,25 +1,4 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <dirent.h>
-
-int		ft_strncmp(const char *s1, const char *s2, size_t n);
-void		ft_putstr(char *str);
-int		ft_strcmp(const char *s1, const char *s2);
-char		*ft_strdup(const char *s1);
-
-typedef struct s_flags
-{
-	unsigned int flags : 5;
-}	t_flags;
-
-typedef struct		s_llist
-{
-	char 		*name;
-	int		val;
-	struct s_llist 	*next;
-	struct s_llist	*last;
-} 			t_llist;
+#include "ft_ls.h"
 
 int	valid_flag(char c)
 {
@@ -56,11 +35,13 @@ void	flip_flags(char c, t_flags *flags)
 		flags->flags |= 16;
 }
 
-int	get_flags(int argc, char **argv, t_flags *flags)
+int	get_flags(int argc, char **argv, t_flags **flags)
 {
 	int i;
 	int j;
 
+	if (!(*flags = (t_flags *)malloc(sizeof(t_flags))))
+        	exit(1);
 	i = 1;
 	while(i < argc)
 	{
@@ -71,7 +52,7 @@ int	get_flags(int argc, char **argv, t_flags *flags)
 			{
 				if(valid_flag(argv[i][j]) == 0)
 					usage(argv[i][j]);
-				flip_flags(argv[i][j], flags);
+				flip_flags(argv[i][j], *flags);
 				++j;
 			}
 		}
@@ -80,15 +61,6 @@ int	get_flags(int argc, char **argv, t_flags *flags)
 		++i;
 	}
 	return (i);
-}
-
-void	malloc_structs(t_flags **flags, t_llist **list)
-{
-	if (!(*flags = (t_flags *)malloc(sizeof(t_flags))))
-		exit(1);
-        if (!(*list = (t_llist *)malloc(sizeof(t_llist))))
-		exit(1);
-	*list = NULL;
 }
 
 int	does_it_exist(char *name)
@@ -171,7 +143,7 @@ void	swap_list(t_llist *head)
 	head->next->name = tmp;
 }
 
-void	print_list(t_llist *list)
+void	print_list(t_llist *list, t_flags *flags)
 {
 	int i;
 	int j;
@@ -179,41 +151,24 @@ void	print_list(t_llist *list)
 
 	i = 0;
 	head = list;
+	if (flags->flags & 1)
+		printf ("total \n");
 	while (i < 2)
 	{
 		j = 0;
 		while(list)
 		{
-			if (j % 2 == i)
-				printf("%s\t\t", list->name);
+			if (j % 2 == i && ((flags->flags & 1) ^ 1))
+				printf("%-16s", list->name);
+			if (flags->flags & 1)
+				printf("         %s\n", list->name);
 			list = list->next;
 			++j;
 		}
-		++i;
+		i += (flags->flags & 1) ? 2 : 1;
 		list = head;
-		printf("\n");
-	}
-}
-
-void	ft_bubble_sort(t_llist **head)
-{
-	t_llist *front;
-	int	go_flag;
-
-	go_flag = 1;
-	while (go_flag)
-	{
-		go_flag = 0;
-		front = *head;
-		while (front->next)
-		{
-			if (ft_strcmp(front->name, front->next->name) > 0)
-			{
-				swap_list(front);
-				++go_flag;
-			}
-			front = front->next;
-		}
+		if (!(flags->flags & 1))
+			printf("\n");
 	}
 }
 
@@ -230,17 +185,23 @@ void	free_list(t_llist *head)
 	}
 }
 
+void	ft_ls(char **argv, t_flags *flags)
+{
+	t_llist *list;
+
+	list = NULL;
+	list = make_list(argv, list, flags);
+        merge_sort(&list, flags);
+        print_list(list, flags);
+        free_list(list);
+}
+
 int	main(int argc, char **argv)
 {
 	t_flags	*flags;
-	t_llist *list;
 	int 	i;
 
-	malloc_structs(&flags, &list);
-	i = get_flags(argc, argv, flags);
-	list = make_list(argv + i, list, flags);
-	ft_bubble_sort(&list);
-	print_list(list);
-	free_list(list);
+	i = get_flags(argc, argv, &flags);
+	ft_ls(argv + i, flags);
 	return (0);
 }
