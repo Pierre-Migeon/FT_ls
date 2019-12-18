@@ -25,3 +25,4 @@ size_t		ft_strlen(const char *s);
 char            *ft_strdup(const char *s1);
 void		merge_sort(t_llist **list,  t_flags *flags);
 void    	ft_ls(char **argv, t_flags *flags, char *path);
+char		*ft_strrchr(const char *s, int c);

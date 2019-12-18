@@ -65,9 +65,12 @@ int	get_flags(int argc, char **argv, t_flags **flags)
 
 int	does_it_exist(char *name)
 {
-	DIR *dirp;
-	struct dirent *dp;
+	DIR 		*dirp;
+	struct dirent	*dp;
+	//char		*path;
 
+	//name = base_name();
+	//path = base_path();
 	dirp = opendir(".");
 	while ((dp = readdir(dirp))) 
 	{
@@ -185,16 +188,25 @@ void	free_list(t_llist *head)
 	}
 }
 
+int	is_not_period(char *path)
+{
+	char *ptr;
+
+	if ((ptr = ft_strrchr(path, '/')) && ++ptr)
+		return (!(!(ft_strcmp(".", ptr)) || !(ft_strcmp("..", ptr))));
+	return (!(!(ft_strcmp(".", path)) || !(ft_strcmp("..", path))));
+}
+
 int	is_directory(char *path) 
 {
 	struct stat statbuf;
 
 	if (stat(path, &statbuf) != 0)
 		return 0;
-	return S_ISDIR(statbuf.st_mode);
+	return (S_ISDIR(statbuf.st_mode) && is_not_period(path));
 }
 
-char	*new_path(char *orig_path, char *directory)
+char	*make_new_path(char *orig_path, char *directory)
 {
 	int	len;
 	int	i;
@@ -218,12 +230,16 @@ char	*new_path(char *orig_path, char *directory)
 
 void    go_sub_dir(t_llist *list, t_flags *flags, char *path)
 {
+	char *new_path;
+
         while (list)
         {
-                if (is_directory(list->name))
-                        ft_ls(NULL, flags, new_path(path, list->name));
-                list = list->next;
-        }
+		new_path = make_new_path(path, list->name);
+		if (is_directory(new_path))
+			ft_ls(NULL, flags, new_path);
+		list = list->next;
+		free(new_path);
+	}
 }
 
 void	ft_ls(char **argv, t_flags *flags, char *path)
@@ -232,6 +248,8 @@ void	ft_ls(char **argv, t_flags *flags, char *path)
 
 	list = make_list(argv, list, flags, path);
         merge_sort(&list, flags);
+	if (ft_strcmp(".", path))
+		printf("\n%s:\n", path);
         print_list(list, flags);
 	if (flags->flags & 8)
 		go_sub_dir(list, flags, path);
