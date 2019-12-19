@@ -84,15 +84,21 @@ int	does_it_exist(char *name)
 	return (1);
 }
 
-void	push_end_node(t_llist **list, char *name)
+void	push_end_node(t_llist **list, char *name, char	*path)
 {
 	t_llist *next;
 	t_llist *current;
+	t_stat	*stats;
 
 	if(!(next = (t_llist *)malloc(sizeof(t_llist))))
 		exit(1);
+	if(!(stats = (t_stat *)malloc(sizeof(t_stat))))
+		exit(1);
 	next->next = NULL;
 	next->name = ft_strdup(name);
+	if (stat(make_new_path(path, name), stats) != 0)
+		exit(1);
+	next->stat = stats;
 	current = *list;
 	while (current && current->next)
 		current = current->next;
@@ -112,7 +118,7 @@ t_llist	*from_command_line(char **argv, t_llist *list)
 		if(does_it_exist(argv[i]))
 			no_such_file(argv[i]);
 		else
-			push_end_node(&list, argv[i]);
+			push_end_node(&list, argv[i], "./");
 		++i;
 	}
 	return (list);
@@ -131,7 +137,7 @@ t_llist	*make_list(char **argv, t_llist *list, t_flags *flags, char *path)
         while ((dp = readdir(dirp)))
 	{
 		if ((ft_strncmp(dp->d_name, ".", 1)) || flags->flags & 2)
-			push_end_node(&list, dp->d_name);
+			push_end_node(&list, dp->d_name, path);
 	}
 	closedir(dirp);
 	return (list);

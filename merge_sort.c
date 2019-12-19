@@ -17,7 +17,7 @@ void	split_list(t_llist *list, t_llist **slow, t_llist **fast)
 	*slow = list;
 }
 
-t_llist *merge_lists(t_llist *a, t_llist *b, t_flags *flags)
+t_llist *merge_lists(t_llist *a, t_llist *b, t_compare_func compare)
 {
 	t_llist *head;
 
@@ -25,28 +25,31 @@ t_llist *merge_lists(t_llist *a, t_llist *b, t_flags *flags)
 		return (b);
 	else if (b == NULL)
 		return (a);
-	if (((flags->flags & 4) >> 2) ^ (ft_strcmp(a->name, b->name) < 0))
-	{
-		a->next = merge_lists(a->next, b, flags);
-		head = a;
-	}
-	else
-	{
-		b->next = merge_lists(a, b->next, flags);
-		head = b;
-	}
+	if (compare(a, b) && (head = a))
+		a->next = merge_lists(a->next, b, compare);
+	else if ((head = b))
+		b->next = merge_lists(a, b->next, compare);
 	return (head);
+}
+
+t_compare_func	get_comp_function(t_flags *flags)
+{
+	if (flags->flags & 16)
+		return ((flags->flags & 4) ? &rev_timesort : &time_sort);
+	return ((flags->flags & 4) ? &rev_alphasort : &alpha_sort);
 }
 
 void	merge_sort(t_llist **list, t_flags *flags)
 {
-	t_llist *a;
-	t_llist *b;
+	t_llist 	*a;
+	t_llist 	*b;
+	t_compare_func	compare;
 
 	if (!*list || !(*list)->next)
 		return;
 	split_list(*list, &a, &b);
 	merge_sort(&a, flags);
 	merge_sort(&b, flags);
-	*list = merge_lists(a, b, flags);
+	compare = get_comp_function(flags);
+	*list = merge_lists(a, b, compare);
 }
