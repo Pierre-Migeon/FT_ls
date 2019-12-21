@@ -152,6 +152,50 @@ void	swap_list(t_llist *head)
 	head->next->name = tmp;
 }
 
+void	print_permissions(t_llist *file)
+{
+	printf((S_ISDIR(file->stat->st_mode)) ? "d" : "-");
+	printf((file->stat->st_mode & S_IRUSR) ? "r" : "-");
+	printf((file->stat->st_mode & S_IWUSR) ? "w" : "-");
+	printf((file->stat->st_mode & S_IXUSR) ? "x" : "-");
+	printf((file->stat->st_mode & S_IRGRP) ? "r" : "-");
+	printf((file->stat->st_mode & S_IWGRP) ? "w" : "-");
+	printf((file->stat->st_mode & S_IXGRP) ? "x" : "-");
+	printf((file->stat->st_mode & S_IROTH) ? "r" : "-");
+	printf((file->stat->st_mode & S_IWOTH) ? "w" : "-");
+	printf((file->stat->st_mode & S_IXOTH) ? "x" : "-");
+	printf(" ");
+}
+
+void	print_group_name(t_llist *file)
+{
+	struct group *g;
+	struct passwd *p;
+
+	p = getpwuid(file->stat->st_uid);
+	printf (" %s ", p->pw_name);	
+	g = getgrgid(file->stat->st_gid);
+	printf (" %s ", g->gr_name);
+}
+
+void	print_times(t_llist *files)
+{
+	char *time;
+	
+	time = ctime(&files->stat->st_mtime);
+	printf ("%s", time);
+}
+
+void	long_print(t_llist *file)
+{
+	print_permissions(file);
+	printf("%3d", file->stat->st_nlink);
+	print_group_name(file);
+	printf(" %5lld ", file->stat->st_size);
+	print_times(file);
+	printf("%s\n", file->name);
+}
+
 void	print_list(t_llist *list, t_flags *flags)
 {
 	int i;
@@ -170,7 +214,7 @@ void	print_list(t_llist *list, t_flags *flags)
 			if (j % 2 == i && ((flags->flags & 1) ^ 1))
 				printf("%-16s", list->name);
 			if (flags->flags & 1)
-				printf("         %s\n", list->name);
+				long_print(list);
 			list = list->next;
 			++j;
 		}
@@ -188,6 +232,7 @@ void	free_list(t_llist *head)
 	while (head)
 	{
 		free(head->name);
+		free(head->stat);
 		current = head;
 		head = head->next;
 		free(current);

@@ -1,13 +1,15 @@
 #include "ft_ls.h"
 
-int	rev_timesort(t_llist *a, t_llist *b)
+int     time_sort(t_llist *a, t_llist *b)
 {
-	return (a->stat->st_mtime < b->stat->st_mtime);
+	if (a->stat->st_mtimespec.tv_sec == b->stat->st_mtimespec.tv_sec)
+		return (a->stat->st_mtimespec.tv_nsec > b->stat->st_mtimespec.tv_nsec);
+	return (a->stat->st_mtimespec.tv_sec > b->stat->st_mtimespec.tv_sec);
 }
 
-int	time_sort(t_llist *a, t_llist *b)
+int	rev_timesort(t_llist *a, t_llist *b)
 {
-	return (a->stat->st_mtime > b->stat->st_mtime);	
+	return (1^(time_sort(a, b)));
 }
 
 int	rev_alphasort(t_llist *a, t_llist *b)

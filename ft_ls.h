@@ -3,6 +3,9 @@
 #include <dirent.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <grp.h>
+#include <pwd.h>
+#include <time.h>
 
 typedef struct  stat    t_stat;
 
