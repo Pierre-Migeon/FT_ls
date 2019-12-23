@@ -41,15 +41,18 @@ t_compare_func	get_comp_function(t_flags *flags)
 
 void	merge_sort(t_llist **list, t_flags *flags)
 {
+	int		block_size;
 	t_llist 	*a;
 	t_llist 	*b;
 	t_compare_func	compare;
 
 	if (!*list || !(*list)->next)
 		return;
+	block_size = (*list)->blocks;
 	split_list(*list, &a, &b);
 	merge_sort(&a, flags);
 	merge_sort(&b, flags);
 	compare = get_comp_function(flags);
 	*list = merge_lists(a, b, compare);
+	(*list)->blocks = block_size;
 }

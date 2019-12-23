@@ -63,28 +63,68 @@ int	get_flags(int argc, char **argv, t_flags **flags)
 	return (i);
 }
 
+char	*get_base_path(char *str)
+{
+        char *ptr_1;
+        char *out;
+
+        if(!(ptr_1 = ft_strrchr(str, '/')))
+		return (ft_strdup("."));
+        if (*(ptr_1 + 1) == '\0')
+		return(ft_strdup(str));
+	out = (char *)malloc(sizeof(char) * (size_t)(ptr_1 - str));
+	out = ft_strncpy(out, str, ptr_1 - str);
+	return (out);
+}
+
+char	*get_base_name(char *str)
+{
+        char *ptr_1;
+	char *ptr_2;
+	char *out;
+
+        if (!(ptr_1 = ft_strrchr(str, '/')))
+		return (ft_strdup(str));
+        if (*(ptr_1 + 1) != '\0')
+                return (ft_strdup(ptr_1 + 1));
+	*ptr_1 = '\0';
+	ptr_2 = ft_strrchr(str, '/');
+	out = ft_strdup(ptr_2 + 1);
+	*ptr_1 = '/';
+	return (out);
+}
+
 int	does_it_exist(char *name)
 {
 	DIR 		*dirp;
 	struct dirent	*dp;
-	//char		*path;
+	char		*base_name;
+	char		*path;
 
-	//name = base_name();
-	//path = base_path();
-	dirp = opendir(".");
-	while ((dp = readdir(dirp))) 
+        path = get_base_path(name);
+        base_name = get_base_name(name);
+	if (!(dirp = opendir(path)))
 	{
-        	if (ft_strcmp(dp->d_name, name) == 0) 
+		printf("ft_ls: %s: Not a directory\n", path);
+		return (2);
+	}
+	while ((dp = readdir(dirp)))
+	{
+        	if (ft_strcmp(dp->d_name, base_name) == 0) 
 		{
 			closedir(dirp);
+			free(base_name);
+			free(path);
 			return (0);
 		}
 	}
 	closedir(dirp);
+	free(base_name);
+        free(path);
 	return (1);
 }
 
-void	push_end_node(t_llist **list, char *name, char	*path)
+int	push_end_node(t_llist **list, char *name, char	*path)
 {
 	t_llist *next;
 	t_llist *current;
@@ -106,40 +146,49 @@ void	push_end_node(t_llist **list, char *name, char	*path)
 		*list = next;
 	else
 		current->next = next;
+	return (next->stat->st_blocks);
 }
 
 t_llist	*from_command_line(char **argv, t_llist *list)
 {
-	int i;
+	int		i;
+	int		out;
+	t_llist 	*cwd_files;
+	t_llist		*directories;
 
 	i = 0;
 	while (argv[i])
 	{
-		if(does_it_exist(argv[i]))
+		if((out = does_it_exist(argv[i])) == 1)
 			no_such_file(argv[i]);
-		else
+		else if (out == 0)
 			push_end_node(&list, argv[i], "./");
 		++i;
 	}
+	cwd_files = split_list(list, 
+	directories = 
 	return (list);
 }
 
 t_llist	*make_list(char **argv, t_llist *list, t_flags *flags, char *path)
 {
 	int 		i;
+	int		total_blocks;
 	DIR 		*dirp;
 	struct dirent 	*dp;
 
 	i = 0;
+	total_blocks = 0;
 	if (argv && *argv)
 		return (from_command_line(argv, list));
 	dirp = opendir(path);
         while ((dp = readdir(dirp)))
 	{
 		if ((ft_strncmp(dp->d_name, ".", 1)) || flags->flags & 2)
-			push_end_node(&list, dp->d_name, path);
+			total_blocks += push_end_node(&list, dp->d_name, path);
 	}
 	closedir(dirp);
+	list->blocks = total_blocks;
 	return (list);
 }
 
@@ -178,12 +227,16 @@ void	print_group_name(t_llist *file)
 	printf (" %s ", g->gr_name);
 }
 
-void	print_times(t_llist *files)
+void	print_date(t_llist *files)
 {
 	char *time;
+	char *ptr;
 	
 	time = ctime(&files->stat->st_mtime);
-	printf ("%s", time);
+	ptr = ft_strrchr(time, ':');
+	*ptr = '\0';
+	time = ft_strchr(time, ' ');
+	printf ("%s ", time);
 }
 
 void	long_print(t_llist *file)
@@ -191,8 +244,8 @@ void	long_print(t_llist *file)
 	print_permissions(file);
 	printf("%3d", file->stat->st_nlink);
 	print_group_name(file);
-	printf(" %5lld ", file->stat->st_size);
-	print_times(file);
+	printf(" %5lld", file->stat->st_size);
+	print_date(file);
 	printf("%s\n", file->name);
 }
 
@@ -205,7 +258,7 @@ void	print_list(t_llist *list, t_flags *flags)
 	i = 0;
 	head = list;
 	if (flags->flags & 1)
-		printf ("total \n");
+		printf ("total %i\n", list->blocks);
 	while (i < 2)
 	{
 		j = 0;
@@ -248,6 +301,7 @@ int	is_not_period(char *path)
 	return (!(!(ft_strcmp(".", path)) || !(ft_strcmp("..", path))));
 }
 
+//Note: you should have the answer as to whether it's a directory without having to call stat again. Update in future
 int	is_directory(char *path) 
 {
 	struct stat statbuf;
@@ -271,7 +325,6 @@ char	*make_new_path(char *orig_path, char *directory)
 		exit(0);
 	while (*orig_path)
 		*(out_path + i++) = *(orig_path++);
-	//Hmmm... won't work on windows computers...
 	*(out_path + i++) = '/';
 	while (*directory)
 		*(out_path + i++) = *(directory++);
@@ -297,7 +350,8 @@ void	ft_ls(char **argv, t_flags *flags, char *path)
 {
 	t_llist *list = NULL;
 
-	list = make_list(argv, list, flags, path);
+	if (!(list = make_list(argv, list, flags, path)))
+		exit(0);
         merge_sort(&list, flags);
 	if (ft_strcmp(".", path))
 		printf("\n%s:\n", path);
