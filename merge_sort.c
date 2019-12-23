@@ -34,6 +34,8 @@ t_llist *merge_lists(t_llist *a, t_llist *b, t_compare_func compare)
 
 t_compare_func	get_comp_function(t_flags *flags)
 {
+	if (flags->flags & 32)
+		return (&dir_vs_nondir_sort);
 	if (flags->flags & 16)
 		return ((flags->flags & 4) ? &rev_timesort : &time_sort);
 	return ((flags->flags & 4) ? &rev_alphasort : &alpha_sort);

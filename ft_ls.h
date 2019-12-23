@@ -11,7 +11,7 @@ typedef struct  stat    t_stat;
 
 typedef struct 		s_flags
 {
-	unsigned int flags : 5;
+	unsigned int flags : 6;
 }			t_flags;
 
 typedef struct		s_llist
@@ -39,3 +39,6 @@ int	rev_alphasort(t_llist *a, t_llist *b);
 int	alpha_sort(t_llist *a, t_llist *b);
 char    *make_new_path(char *orig_path, char *directory);
 char	*ft_strncpy(char *dst, const char *src, size_t len);
+void    print_list(t_llist *list, t_flags *flags, int direct_files);
+void	go_sub_dir(t_llist *list, t_flags *flags, char *path);
+int	dir_vs_nondir_sort(t_llist *a, t_llist *b);

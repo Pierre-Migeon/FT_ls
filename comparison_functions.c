@@ -21,3 +21,8 @@ int	alpha_sort(t_llist *a, t_llist *b)
 {
 	return (ft_strcmp(a->name, b->name) < 0);
 }
+
+int	dir_vs_nondir_sort(t_llist *a, t_llist *b)
+{
+	return (!S_ISDIR(a->stat->st_mode) && S_ISDIR(b->stat->st_mode));
+}

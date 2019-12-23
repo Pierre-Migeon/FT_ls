@@ -89,7 +89,7 @@ char	*get_base_name(char *str)
                 return (ft_strdup(ptr_1 + 1));
 	*ptr_1 = '\0';
 	ptr_2 = ft_strrchr(str, '/');
-	out = ft_strdup(ptr_2 + 1);
+	out = (ptr_2) ? ft_strdup(ptr_2 + 1) : ft_strdup(str);
 	*ptr_1 = '/';
 	return (out);
 }
@@ -101,8 +101,8 @@ int	does_it_exist(char *name)
 	char		*base_name;
 	char		*path;
 
-        path = get_base_path(name);
-        base_name = get_base_name(name);
+	path = get_base_path(name);
+	base_name = get_base_name(name);
 	if (!(dirp = opendir(path)))
 	{
 		printf("ft_ls: %s: Not a directory\n", path);
@@ -149,14 +149,39 @@ int	push_end_node(t_llist **list, char *name, char	*path)
 	return (next->stat->st_blocks);
 }
 
-t_llist	*from_command_line(char **argv, t_llist *list)
+t_llist *split_two_lists(t_llist **list)
+{
+	t_llist *head;
+	t_llist *original;
+	t_llist *last = NULL;
+
+	head = original = *list;
+	while (head)
+	{
+		if (S_ISDIR(head->stat->st_mode))
+		{
+			*list = head;
+			if (last)
+				last->next = NULL;
+		}
+		last = head;
+		head = head->next;
+	}
+	return ((original != *list || !S_ISDIR(original->stat->st_mode)) ? original : NULL);
+}
+
+t_llist	*from_command_line(char **argv, t_llist *list, t_flags *flags)
 {
 	int		i;
 	int		out;
 	t_llist 	*cwd_files;
-	t_llist		*directories;
+	t_flags		new_flag;
 
+	flags->flags += 1;
+	flags->flags -= 1;
+	new_flag.flags |= 32;
 	i = 0;
+	cwd_files = NULL;
 	while (argv[i])
 	{
 		if((out = does_it_exist(argv[i])) == 1)
@@ -165,9 +190,13 @@ t_llist	*from_command_line(char **argv, t_llist *list)
 			push_end_node(&list, argv[i], "./");
 		++i;
 	}
-	cwd_files = split_list(list, 
-	directories = 
-	return (list);
+	merge_sort(&list, &new_flag);
+	cwd_files = split_two_lists(&list);
+	merge_sort(&cwd_files, flags);
+	merge_sort(&list, flags);
+	print_list(cwd_files, flags, 0);
+	go_sub_dir(list, flags, ".");
+	return (NULL);
 }
 
 t_llist	*make_list(char **argv, t_llist *list, t_flags *flags, char *path)
@@ -180,7 +209,7 @@ t_llist	*make_list(char **argv, t_llist *list, t_flags *flags, char *path)
 	i = 0;
 	total_blocks = 0;
 	if (argv && *argv)
-		return (from_command_line(argv, list));
+		return (from_command_line(argv, list, flags));
 	dirp = opendir(path);
         while ((dp = readdir(dirp)))
 	{
@@ -249,7 +278,7 @@ void	long_print(t_llist *file)
 	printf("%s\n", file->name);
 }
 
-void	print_list(t_llist *list, t_flags *flags)
+void	print_list(t_llist *list, t_flags *flags, int direct_files)
 {
 	int i;
 	int j;
@@ -257,7 +286,7 @@ void	print_list(t_llist *list, t_flags *flags)
 
 	i = 0;
 	head = list;
-	if (flags->flags & 1)
+	if ((flags->flags & 1) && (direct_files == 1))
 		printf ("total %i\n", list->blocks);
 	while (i < 2)
 	{
@@ -354,8 +383,8 @@ void	ft_ls(char **argv, t_flags *flags, char *path)
 		exit(0);
         merge_sort(&list, flags);
 	if (ft_strcmp(".", path))
-		printf("\n%s:\n", path);
-        print_list(list, flags);
+		printf("\n%s:\n", get_base_name(path));
+        print_list(list, flags, 1);
 	if (flags->flags & 8)
 		go_sub_dir(list, flags, path);
 	free_list(list);
