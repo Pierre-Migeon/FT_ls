@@ -390,6 +390,7 @@ void	ft_ls(char **argv, t_flags *flags, char *path)
 	free_list(list);
 }
 
+
 int	main(int argc, char **argv)
 {
 	t_flags	*flags;
